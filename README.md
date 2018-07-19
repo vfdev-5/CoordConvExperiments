@@ -7,3 +7,4 @@ Implementation of CoordConv is taken from [mkocabas/CoordConv-pytorch](https://g
 ## Content
 
 - Supervised Coordinate Classification
+- Supervised Coordinate Regression

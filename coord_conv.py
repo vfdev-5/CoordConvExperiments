@@ -1,3 +1,5 @@
+# Implementation of CoordConv is taken from [mkocabas/CoordConv-pytorch](https://github.com/mkocabas/CoordConv-pytorch) (thanks to @mkocabas)
+
 import torch
 import torch.nn as nn
 
@@ -18,8 +20,8 @@ class AddCoords(nn.Module):
         xx_channel = torch.arange(x_dim).repeat(1, y_dim, 1)
         yy_channel = torch.arange(y_dim).repeat(1, x_dim, 1).transpose(1, 2)
 
-        xx_channel = xx_channel.float() / (x_dim - 1)
-        yy_channel = yy_channel.float() / (y_dim - 1)
+        xx_channel = xx_channel.type_as(input_tensor) / (x_dim - 1)
+        yy_channel = yy_channel.type_as(input_tensor) / (y_dim - 1)
 
         xx_channel = xx_channel * 2 - 1
         yy_channel = yy_channel * 2 - 1
@@ -27,10 +29,7 @@ class AddCoords(nn.Module):
         xx_channel = xx_channel.repeat(batch_size, 1, 1, 1).transpose(2, 3)
         yy_channel = yy_channel.repeat(batch_size, 1, 1, 1).transpose(2, 3)
 
-        ret = torch.cat([
-            input_tensor,
-            xx_channel.type_as(input_tensor),
-            yy_channel.type_as(input_tensor)], dim=1)
+        ret = torch.cat([input_tensor, xx_channel, yy_channel], dim=1)
 
         if self.with_r:
             rr = torch.sqrt(torch.pow(xx_channel - 0.5, 2) + torch.pow(yy_channel - 0.5, 2))
@@ -44,7 +43,8 @@ class CoordConv(nn.Module):
     def __init__(self, in_channels, out_channels, with_r=False, **kwargs):
         super().__init__()
         self.addcoords = AddCoords(with_r=with_r)
-        self.conv = nn.Conv2d(in_channels + 2, out_channels, **kwargs)
+        n_channels = 3 if with_r else 2
+        self.conv = nn.Conv2d(in_channels + n_channels, out_channels, **kwargs)
 
     def forward(self, x):
         ret = self.addcoords(x)
